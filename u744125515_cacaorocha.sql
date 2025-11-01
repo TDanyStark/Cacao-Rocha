@@ -31,6 +31,7 @@ CREATE TABLE `delete_transactions` (
   `id` int(11) NOT NULL,
   `type` enum('compra','venta','gasto') NOT NULL,
   `detail` text NOT NULL,
+  `cedula` varchar(100) DEFAULT NULL,
   `quantity` int(11) DEFAULT NULL,
   `unit_price` decimal(11,0) NOT NULL,
   `total_price` decimal(11,0) DEFAULT NULL,
@@ -47,8 +48,8 @@ CREATE TABLE `delete_transactions` (
 -- Volcado de datos para la tabla `delete_transactions`
 --
 
-INSERT INTO `delete_transactions` (`id`, `type`, `detail`, `quantity`, `unit_price`, `total_price`, `inventory_price`, `balance_quantity`, `average_cost`, `cost_of_sale`, `user_id`, `created_at`, `deleted_by`) VALUES
-(29, 'compra', 'twew', 1000, 15600, 15600000, 15600000, 1000, 15600.0000, NULL, 1, '2025-03-11 11:57:56', 1);
+INSERT INTO `delete_transactions` (`id`, `type`, `detail`, `cedula`, `quantity`, `unit_price`, `total_price`, `inventory_price`, `balance_quantity`, `average_cost`, `cost_of_sale`, `user_id`, `created_at`, `deleted_by`) VALUES
+(29, 'compra', 'twew', NULL, 1000, 15600, 15600000, 15600000, 1000, 15600.0000, NULL, 1, '2025-03-11 11:57:56', 1);
 
 -- --------------------------------------------------------
 
@@ -60,6 +61,7 @@ CREATE TABLE `transactions` (
   `id` int(11) NOT NULL,
   `type` enum('compra','venta','gasto') NOT NULL,
   `detail` text NOT NULL,
+  `cedula` varchar(100) DEFAULT NULL,
   `quantity` int(11) DEFAULT NULL,
   `unit_price` decimal(11,0) NOT NULL,
   `total_price` decimal(11,0) DEFAULT NULL,

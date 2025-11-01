@@ -75,6 +75,7 @@ class TransactionsController
             $detail = $data['detail'] ?? null;
             $quantity = $data['quantity'] ?? null;
             $unit_price = $data['unit_price'] ?? null;
+            $cedula = $data['cedula'] ?? null;
 
             // si el type es gasto, la cantidad debe ser null
             if ($type == 'gasto') {
@@ -90,7 +91,8 @@ class TransactionsController
                 $detail,
                 $quantity,
                 $unit_price,
-                $user_id
+                $user_id,
+                $cedula
             )) {
                 $_SESSION['success_transactions'] = "Transacción creada exitosamente.";
                 header("Location: /cacaorocha/transactions"); // Redirigir si se creó exitosamente
@@ -158,7 +160,7 @@ class TransactionsController
             $sheet = $spreadsheet->getActiveSheet();
 
             // Encabezados
-            $headers = ["ID", "Tipo", "Detalle", "Cantidad", "Precio Unitario", "Precio Total", "Usuario", "Fecha"];
+            $headers = ["ID", "Tipo", "Detalle", "Cédula", "Cantidad", "Precio Unitario", "Precio Total", "Usuario", "Fecha"];
             $sheet->fromArray($headers, NULL, 'A1');
 
             // Agregar los datos
@@ -176,6 +178,7 @@ class TransactionsController
                     $transaction['id'],
                     $transaction['type'],
                     $transaction['detail'],
+                    $transaction['cedula'] ?? null,
                     $transaction['quantity'],
                     $unit_price,
                     $total_price,

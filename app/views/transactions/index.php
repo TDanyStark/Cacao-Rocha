@@ -248,6 +248,7 @@
                                     <th>#</th>
                                     <th>Tipo</th>
                                     <th>Detalle</th>
+                                    <th>Cédula</th>
                                     <th>Cantidad</th>
                                     <th>Precio Unitario</th>
                                     <th>Precio Total</th>
@@ -292,6 +293,7 @@
                                                     <?= htmlspecialchars($transaction['detail'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
                                                 </span>
                                             </td>
+                                            <td><?= htmlspecialchars($transaction['cedula'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><?= htmlspecialchars($transaction['quantity'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td>
                                                 <span style="white-space: nowrap; display: block;"><?= $transaction['type'] === "compra" ? "" : "- " ?> $<?= number_format($transaction['unit_price']); ?></span>
@@ -322,7 +324,7 @@
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="13" class="text-center py-3">No hay transacciones disponibles.</td>
+                                        <td colspan="14" class="text-center py-3">No hay transacciones disponibles.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -365,6 +367,10 @@
                                     <span class="input-group-text">$</span>
                                     <input type="number" class="form-control" id="transaction-unit-price" name="unit_price" min="0.01" step="0.01" required>
                                 </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="transaction-cedula" class="form-label">Cédula (opcional)</label>
+                                <input type="text" class="form-control" id="transaction-cedula" name="cedula" placeholder="Cédula del comprador">
                             </div>
                         </div>
                         <!-- Agregado en el modal de nueva transacción -->

@@ -22,14 +22,14 @@ class TransactionsModel
       $date_end = $date_end ?? $default_end;
   
       // Consulta con JOIN para obtener el nombre del usuario
-      $stmt = $this->pdo->prepare("
-          SELECT t.*, u.name AS user_name 
-          FROM transactions t
-          JOIN users u ON t.user_id = u.id
-          WHERE t.type LIKE :type 
-          AND DATE(t.created_at) BETWEEN :date_start AND :date_end
-          ORDER BY t.created_at DESC
-      ");
+    $stmt = $this->pdo->prepare("
+      SELECT t.*, u.name AS user_name 
+      FROM transactions t
+      JOIN users u ON t.user_id = u.id
+      WHERE t.type LIKE :type 
+      AND DATE(t.created_at) BETWEEN :date_start AND :date_end
+      ORDER BY t.created_at DESC
+    ");
   
       $stmt->bindParam(':type', $type, PDO::PARAM_STR);
       $stmt->bindParam(':date_start', $date_start);
@@ -58,9 +58,9 @@ class TransactionsModel
       $this->pdo->beginTransaction();
 
       // Obtener la transacción antes de eliminarla
-      $deletedTransaction = $this->pdo->prepare("
-            SELECT * FROM transactions WHERE id = :id
-        ");
+  $deletedTransaction = $this->pdo->prepare("
+    SELECT * FROM transactions WHERE id = :id
+    ");
       $deletedTransaction->execute(['id' => $id]);
       $row = $deletedTransaction->fetch(PDO::FETCH_ASSOC);
 
@@ -74,11 +74,11 @@ class TransactionsModel
       // Insertar la transacción en delete_transactions
       $insert = $this->pdo->prepare("
             INSERT INTO delete_transactions (
-                id, type, detail, quantity, unit_price, total_price, 
+                id, type, detail, cedula, quantity, unit_price, total_price, 
                 inventory_price, balance_quantity, average_cost, 
                 cost_of_sale, user_id, created_at, deleted_by
             ) VALUES (
-                :id, :type, :detail, :quantity, :unit_price, :total_price, 
+                :id, :type, :detail, :cedula, :quantity, :unit_price, :total_price, 
                 :inventory_price, :balance_quantity, :average_cost, 
                 :cost_of_sale, :user_id, :created_at, :deleted_by
             )
@@ -87,6 +87,7 @@ class TransactionsModel
         'id' => $row['id'],
         'type' => $row['type'],
         'detail' => $row['detail'],
+        'cedula' => $row['cedula'] ?? null,
         'quantity' => $row['quantity'],
         'unit_price' => $row['unit_price'],
         'total_price' => $row['total_price'],
@@ -178,6 +179,9 @@ class TransactionsModel
 
   public function createTransaction(string $type, string $detail, ?int $quantity, float $unit_price, int $user_id): bool
   {
+    // Added optional $cedula parameter is handled by controller; keep signature backward compatible by checking func_get_args if needed
+    $args = func_get_args();
+    $cedula = $args[5] ?? null;
     // Obtener los últimos valores del inventario
     $lastTransaction = $this->pdo->query("
         SELECT balance_quantity, average_cost, inventory_price 
@@ -218,14 +222,15 @@ class TransactionsModel
     // Insertar la transacción con los nuevos valores
     $stmt = $this->pdo->prepare("
         INSERT INTO transactions (type, detail, quantity, unit_price, total_price, user_id, 
-                                  inventory_price, balance_quantity, average_cost, cost_of_sale) 
+                                  cedula, inventory_price, balance_quantity, average_cost, cost_of_sale) 
         VALUES (:type, :detail, :quantity, :unit_price, :total_price, :user_id, 
-                :inventory_price, :balance_quantity, :average_cost, :cost_of_sale)
+                :cedula, :inventory_price, :balance_quantity, :average_cost, :cost_of_sale)
     ");
 
     return $stmt->execute([
       'type' => $type,
       'detail' => $detail,
+      'cedula' => $cedula,
       'quantity' => $quantity,
       'unit_price' => $unit_price,
       'total_price' => ($quantity ?? 1) * $unit_price,
