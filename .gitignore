@@ -1,0 +1,29 @@
+### PHP / general
+/vendor/
+/composer.lock
+
+# Logs
+/logs/
+*.log
+
+# Environment files
+.env
+.env.local
+
+# IDEs and OS
+/.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Public uploads (adjust if you keep uploads elsewhere)
+/public/uploads/
+
+# Ignore sensitive config file (keep example tracked)
+/config/config.php
+/config/*.local.php
+
+# Other common ignores
+node_modules/
+/*.cache
+/.phpunit.result.cache
