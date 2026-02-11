@@ -357,7 +357,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="transaction-quantity" class="form-label">Cantidad <span id="quantity-preview"></span></label>
-                                <input type="number" class="form-control" id="transaction-quantity" name="quantity" min="1" required>
+                                <input type="text" class="form-control" id="transaction-quantity" name="quantity" inputmode="decimal" pattern="[0-9.]*" required>
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -365,7 +365,7 @@
                                 <label for="transaction-unit-price" class="form-label">Precio Unitario <span id="unit-price-preview"></span></label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="transaction-unit-price" name="unit_price" min="0.01" step="0.01" required>
+                                    <input type="text" class="form-control" id="transaction-unit-price" name="unit_price" inputmode="decimal" pattern="[0-9.]*" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -516,35 +516,64 @@
             const quantityPreview = document.getElementById('quantity-preview');
             const unitPricePreview = document.getElementById('unit-price-preview');
 
-            function formatNumber(value) {
-                return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            function formatNumber(value, decimals = 0) {
+                const number = typeof value === "number" ? value : toNumber(value);
+                if (!Number.isFinite(number)) return "0";
+
+                const fixed = decimals > 0 ? number.toFixed(decimals) : Math.round(number).toString();
+                const parts = fixed.split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                return parts.join('.');
             }
 
-            function cleanNumber(value) {
-                if (typeof value !== "string") return 0;
-                // Reemplazar los puntos de miles y cambiar la coma decimal por un punto
-                let cleaned = value.replace(/\./g, '').replace(',', '');
-                let number = parseFloat(cleaned);
+            function normalizeDecimalInput(value) {
+                if (typeof value !== "string") return "";
+
+                let cleaned = value.replace(',', '.').replace(/[^0-9.]/g, '');
+                const firstDotIndex = cleaned.indexOf('.');
+                if (firstDotIndex !== -1) {
+                    cleaned = cleaned.slice(0, firstDotIndex + 1) + cleaned.slice(firstDotIndex + 1).replace(/\./g, '');
+                }
+
+                return cleaned;
+            }
+
+            function toNumber(value) {
+                const number = parseFloat(value);
                 return isNaN(number) ? 0 : number;
             }
 
+            function updateInputPreserveCaret(input, nextValue) {
+                const previousValue = input.value;
+                if (previousValue === nextValue) return;
+
+                const start = input.selectionStart ?? previousValue.length;
+                const diff = previousValue.length - nextValue.length;
+                const nextPos = Math.max(0, start - diff);
+
+                input.value = nextValue;
+                input.setSelectionRange(nextPos, nextPos);
+            }
+
             function updateTotal() {
-                const quantity = parseFloat(cleanNumber(quantityInput.value)) || 0;
-                const unitPrice = cleanNumber(unitPriceInput.value);
+                const quantity = toNumber(normalizeDecimalInput(quantityInput.value));
+                const unitPrice = toNumber(normalizeDecimalInput(unitPriceInput.value));
                 const total = quantity * unitPrice;
-                totalPriceDisplay.textContent = `$${formatNumber(total)}`;
+                totalPriceDisplay.textContent = `$${formatNumber(total, 2)}`;
             }
 
             unitPriceInput.addEventListener('input', function(e) {
-                this.value = cleanNumber(this.value);
-                unitPricePreview.textContent = `($${formatNumber(this.value)})`;
+                const normalized = normalizeDecimalInput(this.value);
+                updateInputPreserveCaret(this, normalized);
+                unitPricePreview.textContent = `($${formatNumber(normalized, 2)})`;
                 updateTotal();
             });
 
 
             quantityInput.addEventListener('input', function(e) {
-                this.value = cleanNumber(this.value);
-                quantityPreview.textContent = `(${formatNumber(this.value)})`;
+                const normalized = normalizeDecimalInput(this.value);
+                updateInputPreserveCaret(this, normalized);
+                quantityPreview.textContent = `(${formatNumber(normalized, 2)})`;
                 updateTotal();
             });
         });
