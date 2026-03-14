@@ -19,6 +19,8 @@ class TransactionsController
             $type = $_GET['type'] ?? null;
             $date_start = !empty($_GET['date_start']) ? $_GET['date_start'] : null;
             $date_end = !empty($_GET['date_end']) ? $_GET['date_end'] : null;
+            $view_mode = $_GET['view_mode'] ?? 'cycle';
+            $view_mode = in_array($view_mode, ['cycle', 'history'], true) ? $view_mode : 'cycle';
 
             // Validar fechas
             if ($date_start && $date_end && strtotime($date_start) > strtotime($date_end)) {
@@ -27,12 +29,17 @@ class TransactionsController
                 exit;
             }
 
-            $transactions = $transactionsModel->getTransactions($type, $date_start, $date_end);
+            $last_zero_id = $transactionsModel->getLastZeroBalanceTransactionId();
+            $min_id = ($view_mode === 'cycle' && $last_zero_id !== null) ? ($last_zero_id + 1) : null;
+
+            $transactions = $transactionsModel->getTransactions($type, $date_start, $date_end, $min_id);
             $total_compras = 0;
             $total_ventas = 0;
             $total_gastos = 0;
+            $total_mermas = 0;
             $total_cantidad_compras = 0;
             $total_cantidad_ventas = 0;
+            $total_cantidad_mermas = 0;
             $total_cost_of_sales = 0;
 
             foreach ($transactions as $transaction) {
@@ -49,12 +56,22 @@ class TransactionsController
                     case 'gasto':
                         $total_gastos += $transaction['total_price'];
                         break;
+                    case 'ajuste_merma':
+                        $total_mermas += $transaction['total_price'];
+                        $total_cantidad_mermas += $transaction['quantity'];
+                        $total_cost_of_sales += $transaction['cost_of_sale'];
+                        break;
                 }
             }
 
-            $inventory = $transactionsModel->getInventory();
-            $total_quantity_ventas = $inventory['total_quantity_venta'];
-            $total_quantity_compras = $inventory['total_quantity_compra'];
+            $inventory_state = $transactionsModel->getCurrentInventoryState();
+            $current_balance_quantity = $inventory_state['balance_quantity'];
+
+            if ($view_mode === 'cycle') {
+                $display_balance_quantity = $transactions[0]['balance_quantity'] ?? 0;
+            } else {
+                $display_balance_quantity = $current_balance_quantity;
+            }
 
             $isAdmin = $_SESSION['role'] == 'admin';
 
@@ -77,14 +94,46 @@ class TransactionsController
             $unit_price = $data['unit_price'] ?? null;
             $cedula = $data['cedula'] ?? null;
 
+            $allowedTypes = ['compra', 'venta', 'gasto', 'ajuste_merma'];
+            if (!in_array($type, $allowedTypes, true)) {
+                $_SESSION['error_transactions'] = "Tipo de transacción no válido.";
+                header("Location: /cacaorocha/transactions");
+                exit;
+            }
+
+            $detail = is_string($detail) ? trim($detail) : '';
+            if ($detail === '') {
+                $_SESSION['error_transactions'] = "El detalle de la transacción es obligatorio.";
+                header("Location: /cacaorocha/transactions");
+                exit;
+            }
+
             // si el type es gasto, la cantidad debe ser null
             if ($type == 'gasto') {
                 $quantity = null;
+            } else {
+                $quantity = is_numeric($quantity) ? (int)$quantity : null;
+                if ($quantity === null || $quantity <= 0) {
+                    $_SESSION['error_transactions'] = "La cantidad debe ser mayor a cero.";
+                    header("Location: /cacaorocha/transactions");
+                    exit;
+                }
             }
 
             // quitarle los puntos y comas al precio unitario
+            $unit_price = $unit_price ?? '0';
             $unit_price = str_replace(',', '', $unit_price);
             $unit_price = str_replace('.', '', $unit_price);
+            $unit_price = is_numeric($unit_price) ? (float)$unit_price : 0;
+
+            if ($type === 'venta' || $type === 'ajuste_merma') {
+                $inventoryState = $transactionsModel->getCurrentInventoryState();
+                if ($quantity > $inventoryState['balance_quantity']) {
+                    $_SESSION['error_transactions'] = "Stock insuficiente. Disponible: " . $inventoryState['balance_quantity'] . " kg.";
+                    header("Location: /cacaorocha/transactions");
+                    exit;
+                }
+            }
 
             if ($transactionsModel->createTransaction(
                 $type,
@@ -169,7 +218,7 @@ class TransactionsController
                 $type = $transaction['type'];
                 $unit_price = $transaction['unit_price'];
                 $total_price = $transaction['total_price'];
-                if ($type == 'gasto' || $type == 'venta') {
+                if ($type == 'gasto' || $type == 'venta' || $type == 'ajuste_merma') {
                     $unit_price = '-' . $unit_price;
                     $total_price = '-' . $total_price;
                 }

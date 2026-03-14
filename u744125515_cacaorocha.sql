@@ -29,7 +29,7 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `delete_transactions` (
   `id` int(11) NOT NULL,
-  `type` enum('compra','venta','gasto') NOT NULL,
+  `type` enum('compra','venta','gasto','ajuste_merma') NOT NULL,
   `detail` text NOT NULL,
   `quantity` int(11) DEFAULT NULL,
   `unit_price` decimal(11,0) NOT NULL,
@@ -58,7 +58,7 @@ INSERT INTO `delete_transactions` (`id`, `type`, `detail`, `quantity`, `unit_pri
 
 CREATE TABLE `transactions` (
   `id` int(11) NOT NULL,
-  `type` enum('compra','venta','gasto') NOT NULL,
+  `type` enum('compra','venta','gasto','ajuste_merma') NOT NULL,
   `detail` text NOT NULL,
   `quantity` int(11) DEFAULT NULL,
   `unit_price` decimal(11,0) NOT NULL,

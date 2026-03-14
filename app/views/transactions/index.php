@@ -49,6 +49,10 @@
             background-color: #dc3545;
         }
 
+        .badge-ajuste-merma {
+            background-color: #fd7e14;
+        }
+
         @media (max-width: 767.98px) {
             .sidebar {
                 min-height: auto;
@@ -135,6 +139,7 @@
                                     <input type="hidden" name="type" value="<?= $type ?>">
                                     <input type="hidden" name="date_start" value="<?= $date_start ?>">
                                     <input type="hidden" name="date_end" value="<?= $date_end ?>">
+                                    <input type="hidden" name="view_mode" value="<?= htmlspecialchars($view_mode) ?>">
                                     <button type="submit" class="btn btn-md btn-outline-secondary">
                                         <i class="fas fa-file-excel me-1"></i> Exportar
                                     </button>
@@ -167,6 +172,14 @@
                                     <option value="compra" <?= $type === 'compra' ? 'selected' : '' ?>>Compra</option>
                                     <option value="venta" <?= $type === 'venta' ? 'selected' : '' ?>>Venta</option>
                                     <option value="gasto" <?= $type === 'gasto' ? 'selected' : '' ?>>Gasto</option>
+                                    <option value="ajuste_merma" <?= $type === 'ajuste_merma' ? 'selected' : '' ?>>Ajuste por merma</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filter-view-mode" class="form-label">Vista</label>
+                                <select class="form-select" id="filter-view-mode" name="view_mode">
+                                    <option value="cycle" <?= $view_mode === 'cycle' ? 'selected' : '' ?>>Ciclo actual</option>
+                                    <option value="history" <?= $view_mode === 'history' ? 'selected' : '' ?>>Historial completo</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -192,7 +205,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="summary-section p-3 mb-3 rounded" style="max-width: 600px;">
-                                <h5 class="text-center fw-bold">Resumen de Transacciones (filtro)</h5>
+                                <h5 class="text-center fw-bold">Resumen de Transacciones (<?= $view_mode === 'cycle' ? 'ciclo actual' : 'historial completo' ?>)</h5>
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
@@ -217,10 +230,15 @@
                                             <td class="text-end">-</td>
                                             <td class="text-end">$<?= number_format($total_gastos) ?></td>
                                         </tr>
+                                        <tr>
+                                            <td><strong>Total Mermas</strong></td>
+                                            <td class="text-end"><?= number_format($total_cantidad_mermas) ?></td>
+                                            <td class="text-end">$<?= number_format($total_mermas) ?></td>
+                                        </tr>
                                         <tr class="table-primary fw-bold">
                                             <td><strong>Utilidad</strong></td>
                                             <td class="text-end">-</td>
-                                            <td class="text-end">$<?= number_format($total_ventas - $total_gastos - $total_cost_of_sales) ?></td>
+                                            <td class="text-end">$<?= number_format($total_ventas - $total_gastos - $total_mermas - $total_cost_of_sales) ?></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -230,7 +248,8 @@
 
                         <div class="col-md-6">
                             <div class="summary-section p-3 mb-3 rounded" style="max-width: 600px;">
-                                <p class="h2">Saldo inventario Q: <span><?= number_format($total_quantity_compras - $total_quantity_ventas) ?></span></p>
+                                <p class="h2">Saldo inventario Q (<?= $view_mode === 'cycle' ? 'ciclo' : 'histórico' ?>): <span><?= number_format($display_balance_quantity) ?></span></p>
+                                <p class="h6 text-muted">Saldo global actual: <span><?= number_format($current_balance_quantity) ?></span></p>
                                 <hr />
                                 <h5 class="text-center fw-bold mt-5">Compras (filtro)</h5>
 
@@ -283,6 +302,9 @@
                                                         break;
                                                     case 'gasto':
                                                         $badgeClass = 'badge-gasto';
+                                                        break;
+                                                    case 'ajuste_merma':
+                                                        $badgeClass = 'badge-ajuste-merma';
                                                         break;
                                                 }
                                                 ?>
@@ -352,6 +374,7 @@
                                     <option value="" selected disabled>Seleccionar tipo</option>
                                     <option value="compra">Compra</option>
                                     <option value="venta">Venta</option>
+                                    <option value="ajuste_merma">Ajuste por merma</option>
                                     <option value="gasto">Gasto</option>
                                 </select>
                             </div>
@@ -367,6 +390,7 @@
                                     <span class="input-group-text">$</span>
                                     <input type="text" class="form-control" id="transaction-unit-price" name="unit_price" inputmode="decimal" pattern="[0-9.]*" required>
                                 </div>
+                                <small id="unit-price-help" class="text-muted"></small>
                             </div>
                             <div class="col-md-6">
                                 <label for="transaction-cedula" class="form-label">Cédula (opcional)</label>
@@ -461,6 +485,7 @@
             // Aplicar filtros
             document.getElementById('applyFilters').addEventListener('click', function() {
                 const type = document.getElementById('filter-type').value;
+                const viewMode = document.getElementById('filter-view-mode').value;
                 const dateStart = document.getElementById('filter-date-start').value;
                 const dateEnd = document.getElementById('filter-date-end').value;
 
@@ -475,6 +500,7 @@
                 // Construir URL con parámetros
                 const params = new URLSearchParams();
                 if (type) params.append('type', type);
+                if (viewMode) params.append('view_mode', viewMode);
                 if (dateStart) params.append('date_start', dateStart);
                 if (dateEnd) params.append('date_end', dateEnd);
 
@@ -485,6 +511,7 @@
             // Limpiar filtros
             document.getElementById('clearFilters').addEventListener('click', function() {
                 document.getElementById('filter-type').value = '';
+                document.getElementById('filter-view-mode').value = 'cycle';
                 document.getElementById('filter-date-start').value = '';
                 document.getElementById('filter-date-end').value = '';
                 document.getElementById('date-error').classList.remove('show');
@@ -583,13 +610,27 @@
         document.addEventListener("DOMContentLoaded", function() {
             const transactionType = document.getElementById("transaction-type");
             const quantityField = document.getElementById("transaction-quantity").closest(".col-md-6");
+            const unitPriceInput = document.getElementById("transaction-unit-price");
+            const unitPriceHelp = document.getElementById("unit-price-help");
 
             transactionType.addEventListener("change", function() {
                 if (this.value === "gasto") {
                     quantityField.style.display = "none";
                     document.getElementById("transaction-quantity").value = "1"; // Limpia el campo
+                    unitPriceInput.disabled = false;
+                    unitPriceInput.required = true;
+                    unitPriceHelp.textContent = "";
+                } else if (this.value === "ajuste_merma") {
+                    quantityField.style.display = "block";
+                    unitPriceInput.value = "0";
+                    unitPriceInput.disabled = true;
+                    unitPriceInput.required = false;
+                    unitPriceHelp.textContent = "Para merma se usa automáticamente el costo promedio actual.";
                 } else {
                     quantityField.style.display = "block";
+                    unitPriceInput.disabled = false;
+                    unitPriceInput.required = true;
+                    unitPriceHelp.textContent = "";
                 }
             });
         });
@@ -660,6 +701,8 @@
 
     <!-- script para manejar los formularios -->
     <script>
+        const availableBalance = <?= (int)$current_balance_quantity ?>;
+
         // Función para manejar el envío de formularios
         function handleFormSubmit() {
             // Seleccionar todos los formularios en la página
@@ -667,6 +710,21 @@
 
             forms.forEach(form => {
                 form.addEventListener('submit', function(event) {
+                    if (this.id === 'newTransactionForm') {
+                        const txType = document.getElementById('transaction-type').value;
+                        const quantity = parseFloat(document.getElementById('transaction-quantity').value) || 0;
+
+                        if ((txType === 'venta' || txType === 'ajuste_merma') && quantity > availableBalance) {
+                            event.preventDefault();
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Stock insuficiente',
+                                text: `Disponible: ${availableBalance} kg, solicitado: ${quantity} kg`
+                            });
+                            return;
+                        }
+                    }
+
                     // Buscar el botón de envío dentro del formulario o relacionado con él
                     let submitButton;
 
