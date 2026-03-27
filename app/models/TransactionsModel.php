@@ -13,21 +13,22 @@ class TransactionsModel
 
   public function getTransactions($type = null, $date_start = null, $date_end = null, $min_id = null)
   {
-      // Definir valores por defecto
-      $default_start = date('Y-m-d', strtotime('-1 month')); // Hace un mes desde hoy
-      $default_end = date('Y-m-d'); // Fecha actual
-  
       $type = $type ? "%$type%" : "%"; // Si no hay filtro, buscar todos los tipos
-      $date_start = $date_start ?? $default_start;
-      $date_end = $date_end ?? $default_end;
 
       $sql = "
       SELECT t.*, u.name AS user_name 
       FROM transactions t
-      JOIN users u ON t.user_id = u.id
-      WHERE t.type LIKE :type 
-      AND DATE(t.created_at) BETWEEN :date_start AND :date_end
+      LEFT JOIN users u ON t.user_id = u.id
+      WHERE t.type LIKE :type
     ";
+
+      if ($date_start !== null && $date_end !== null) {
+        $sql .= " AND DATE(t.created_at) BETWEEN :date_start AND :date_end";
+      } elseif ($date_start !== null) {
+        $sql .= " AND DATE(t.created_at) >= :date_start";
+      } elseif ($date_end !== null) {
+        $sql .= " AND DATE(t.created_at) <= :date_end";
+      }
 
       if ($min_id !== null) {
         $sql .= " AND t.id >= :min_id";
@@ -37,8 +38,12 @@ class TransactionsModel
 
       $stmt = $this->pdo->prepare($sql);
       $stmt->bindParam(':type', $type, PDO::PARAM_STR);
-      $stmt->bindParam(':date_start', $date_start);
-      $stmt->bindParam(':date_end', $date_end);
+      if ($date_start !== null) {
+        $stmt->bindParam(':date_start', $date_start);
+      }
+      if ($date_end !== null) {
+        $stmt->bindParam(':date_end', $date_end);
+      }
       if ($min_id !== null) {
         $stmt->bindParam(':min_id', $min_id, PDO::PARAM_INT);
       }
